@@ -14,6 +14,8 @@ const KEY_DOWN = 40;
 const ENEMY_MOVE_DELAY = 500; // ms between enemy position changes
 const DROP_SHADOW_OFFSET = 2; // px offset from text
 
+const FIELD_OFFSET = 50; // px from the top
+
 let initialState = {
   isRunning: true,
   playerWon: false,
@@ -104,16 +106,50 @@ const CELL_SIZE = 50; // px in width and height
 const CELL_EMOJI_YOFFSET = 6;
 const drawCell = (x, y, emoji) => {
   const xPos = x * CELL_SIZE;
-  const yPos = y * CELL_SIZE;
+  const yPos = y * CELL_SIZE + FIELD_OFFSET;
   ctx.font = `${CELL_SIZE}px Arial`;
   ctx.textBaseline = 'top';
   ctx.fillText(emoji, xPos, yPos + CELL_EMOJI_YOFFSET);
+};
+
+const drawText = (str, x, y) => {
+  ctx.fillStyle = 'black';
+  ctx.fillText(str, x + DROP_SHADOW_OFFSET, y + DROP_SHADOW_OFFSET);
+  ctx.fillStyle = 'white';
+  ctx.fillText(str, x, y);
 };
 
 const draw = () => {
   ctx.fillStyle = 'black';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  // Divider line for board
+  const GUTTER = 10; // px from line
+  const FIELD_LINE_OFFSET = FIELD_OFFSET - GUTTER;
+  ctx.strokeStyle = 'white';
+  ctx.beginPath();
+  ctx.moveTo(0, FIELD_LINE_OFFSET);
+  ctx.lineTo(canvas.width, FIELD_LINE_OFFSET);
+  ctx.stroke();
+
+  // Title
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `20px Arial`;
+  drawText('Mower', canvas.width / 2, FIELD_LINE_OFFSET / 2);
+  ctx.textAlign = 'left';
+
+  // Progress
+  const { isRunning, numMowed, totalCells } = state;
+  ctx.font = `20px Arial`;
+  ctx.textBaseline = 'middle';
+  const pctDone = Math.floor((numMowed / totalCells) * 100);
+  const msg = `${pctDone}%`;
+  const xPos = 10;
+  const yPos = FIELD_LINE_OFFSET / 2;
+  drawText(msg, xPos, yPos);
+
+  // Field
   const { numXCells, numYCells, board, enemyPos, playerPos } = state;
   for (let x = 0; x < numXCells; x++) {
     for (let y = 0; y < numYCells; y++) {
@@ -126,7 +162,7 @@ const draw = () => {
     }
   }
 
-  const { isRunning, numMowed, totalCells } = state;
+  // Game Over message
   if (!isRunning) {
     const { playerWon } = state;
     // Game Over message
@@ -137,27 +173,9 @@ const draw = () => {
     const totalMsg = `Total: ${Math.floor((numMowed/totalCells)*100)}% (${numMowed}/${totalCells});`
     const xPos = Math.floor(canvas.width / 2);
     const yPos = Math.floor(canvas.height / 2);
-
-    // drop shadow
-    ctx.fillStyle= 'black';
-    ctx.fillText(gameOverMsg, xPos + DROP_SHADOW_OFFSET, yPos + DROP_SHADOW_OFFSET - CELL_SIZE);
-    ctx.fillText(totalMsg, xPos + DROP_SHADOW_OFFSET, yPos + DROP_SHADOW_OFFSET);
-
-    // display text
-    ctx.fillStyle= 'white';
-    ctx.fillText(gameOverMsg, xPos, yPos - CELL_SIZE);
-    ctx.fillText(totalMsg, xPos, yPos);
-  } else {
-    ctx.font = `20px Arial`;
-    ctx.textBaseline = 'top';
-    const pctDone = Math.floor((numMowed / totalCells) * 100);
-    const msg = `${pctDone}%`;
-    const xPos = 10;
-    const yPos = 10;
-    ctx.fillStyle = 'black';
-    ctx.fillText(msg, xPos + DROP_SHADOW_OFFSET, yPos + DROP_SHADOW_OFFSET);
-    ctx.fillStyle = 'white';
-    ctx.fillText(msg, xPos, yPos);
+    // draw text
+    drawText(gameOverMsg, xPos, yPos - CELL_SIZE);
+    drawText(totalMsg, xPos, yPos);
   }
 };
 
@@ -172,8 +190,10 @@ const loop = () => {
 const resize = () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  state.numXCells = Math.floor(canvas.width / CELL_SIZE);
-  state.numYCells = Math.floor(canvas.height / CELL_SIZE);
+  const fieldHeight = canvas.height - FIELD_OFFSET;
+  const fieldWidth = canvas.width;
+  state.numXCells = Math.floor(fieldWidth / CELL_SIZE);
+  state.numYCells = Math.floor(fieldHeight / CELL_SIZE);
   state.totalCells = state.numXCells * state.numYCells;
 }
 
